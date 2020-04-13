@@ -4,12 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
+import org.apache.poi.xwpf.usermodel.TextAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
-import org.apache.poi.xwpf.usermodel.XWPFTableCell.XWPFVertAlign;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTrPr;
 
 import com.deepoove.poi.policy.DynamicTableRenderPolicy;
 
@@ -19,7 +20,7 @@ import com.deepoove.poi.policy.DynamicTableRenderPolicy;
  * <br>支持交替继承数据行背景色、行高</br>
  * <br>支持继承数据行的第一行的水平位置</br>
  */
-public class TableRenderPolicy extends DynamicTableRenderPolicy {
+public class TableRenderPolicy2 extends DynamicTableRenderPolicy {
 
 	// 支持的模板表格标题行数
 	private final int TITLE_ROWS_SIZE = 1;
@@ -58,12 +59,13 @@ public class TableRenderPolicy extends DynamicTableRenderPolicy {
 			List<String> color = new ArrayList<>();
 			// 模板表格的行高
 			List<Integer> hight = new ArrayList<>();
-			// 模板表格单元格水平位置
+			// 模板表格水平位置
 			List<ParagraphAlignment> paragraphAlignment = new ArrayList<>();
-			// 模板表格单元格垂直位置
-			List<XWPFVertAlign> xWPFVertAlign = new ArrayList<>();
-			// 模板表格单元格字体
-			List<XWPFRun> xWPFRun = new ArrayList<>();
+			// 模板表格垂直位置
+			List<TextAlignment> textAlignment = new ArrayList<>();
+			// 模板表格行属性
+			List<CTTrPr> cTTrPrs = new ArrayList<>();
+			List<XWPFTableCell> cellList = new ArrayList<>();
 			for (int i = 0; i < templateRowsSize; i++) {
 				if (TITLE_ROWS_SIZE < i + 1) { // 不取标题行样式
 					color.add(table.getRows().get(i).getCell(0).getColor());
@@ -74,16 +76,17 @@ public class TableRenderPolicy extends DynamicTableRenderPolicy {
 						XWPFTableCell cell = table.getRows().get(i).getCell(j);
 						XWPFParagraph cellParagraph = cell.getParagraphs().get(0);
 						paragraphAlignment.add(cellParagraph.getAlignment());
-						xWPFVertAlign.add(cell.getVerticalAlignment());
-						XWPFRun tmpR = cellParagraph.getRuns().get(0);
-						tmpR.isBold();
-						tmpR.isItalic();
-						tmpR.getUnderline();
-						tmpR.getColor();
-						tmpR.getTextPosition();
-						tmpR.getFontSize();
-						xWPFRun.add(tmpR);
+						textAlignment.add(cellParagraph.getVerticalAlignment());
+						/////
+						cellList = table.getRows().get(i).getTableCells();
+						//////
+						 XWPFParagraph tmpP = cell.getParagraphs().get(0);
 					}
+					/////////
+//					table.getRows().get(i).getCtRow().setTrPr(table.getRows().get(i).getCtRow().getTrPr());
+					CTTrPr cTTrPr= table.getRows().get(i).getCtRow().getTrPr();
+					cTTrPrs.add(cTTrPr);
+					
 				}
 			}
 			// 补充表格行数
@@ -93,30 +96,43 @@ public class TableRenderPolicy extends DynamicTableRenderPolicy {
 				
 				if (hight.size() > 0) {
 					// 交替设置行高
-					newRow.setHeight(hight.get((i - TITLE_ROWS_SIZE) % (hight.size())));
+//					newRow.setHeight(hight.get((i - TITLE_ROWS_SIZE) % (hight.size())));
 				}
 				if (null != newRow) {
 					// 遍历获取单元格
 					for (int j = 0; j < dataColumnSize; j++) {
 						// 新建单元格
 						XWPFTableCell newCell = newRow.createCell();
+						newRow.getCtRow().setTrPr(cTTrPrs.get(0));
 						if (color.size() > 0) {
 							// 交替设置单元格颜色
-							newCell.setColor(color.get((i - TITLE_ROWS_SIZE) % (color.size())));
+//							newCell.setColor(color.get((i - TITLE_ROWS_SIZE) % (color.size())));
 						}
 						if (paragraphAlignment.size() > 0) {
-							newCell.getParagraphs().get(0).setAlignment(paragraphAlignment.get(j));
+//							newCell.getParagraphs().get(0).setAlignment(paragraphAlignment.get(j));
 						}
-						if (xWPFVertAlign.size() > 0) {
-							newCell.setVerticalAlignment(xWPFVertAlign.get(j));
+						if (textAlignment.size() > 0) {
+//							newCell.getParagraphs().get(0).setVerticalAlignment(textAlignment.get(j));
 						}
-//						newCell.getParagraphs().get(0).addRun(xWPFRun.get(j)); // 无效
-//						newCell.getParagraphs().get(0).getRuns().get(0).setBold(xWPFRun.get(j).isBold());
-						XWPFParagraph xWPFParagraph = newCell.getParagraphs().get(0);
-						XWPFRun cellR = xWPFParagraph.createRun();
-						cellR.setBold(xWPFRun.get(j).isBold());
-						xWPFParagraph.addRun(cellR);
-						newCell.addParagraph(xWPFParagraph);
+						
+						XWPFTableCell sourceCell = cellList.get(j);
+						// 列属性
+						newCell.getCTTc().setTcPr(sourceCell.getCTTc().getTcPr());
+						// 段落属性
+						if (sourceCell.getParagraphs() != null && sourceCell.getParagraphs().size() > 0) {
+							newCell.getParagraphs().get(0).getCTP().setPPr(sourceCell.getParagraphs().get(0).getCTP().getPPr());
+							if (sourceCell.getParagraphs().get(0).getRuns() != null
+									&& sourceCell.getParagraphs().get(0).getRuns().size() > 0) {
+								XWPFRun cellR = newCell.getParagraphs().get(0).createRun();
+								cellR.setText(sourceCell.getText());
+								cellR.setBold(sourceCell.getParagraphs().get(0).getRuns().get(0).isBold());
+							} else {
+								newCell.setText(sourceCell.getText());
+							}
+						} else {
+							newCell.setText(sourceCell.getText());
+						}
+					    
 					}
 				}
 			}

@@ -36,6 +36,8 @@ public class PoiWordDemo {
 		dataList.add(Arrays.asList(new String[] { "id002", "商品002", "2020-01-02", "2020-08-02" }));
 		dataList.add(Arrays.asList(new String[] { "id003", "商品003", "2020-01-03", "2020-08-03" }));
 		dataList.add(Arrays.asList(new String[] { "id004", "商品004", "2020-01-04", "2020-08-04" }));
+		dataList.add(Arrays.asList(new String[] { "id005", "商品005", "2020-01-04", "2020-08-04" }));
+		dataList.add(Arrays.asList(new String[] { "id006", "商品006", "2020-01-04", "2020-08-04" }));
 		reportDataMap.put("S002", dataList);
 		
 		reportDataMap.put("TITLE2", "新型冠状病毒");
@@ -65,7 +67,7 @@ public class PoiWordDemo {
 		
 		// 绑定模板
 		ConfigureBuilder builder = Configure.newBuilder();
-		builder.addPlugin('!', new TableRenderPolicy());// 多列表格标签
+		builder.addPlugin('!', new TableRenderPolicy());// 自定义表格标签插件，模板中占位符以!作为标识
 		XWPFTemplate template = XWPFTemplate.compile("./poiword.docx", builder.build());
 		// 模板绑定数据
 		template.render(reportDataMap);
